@@ -59,9 +59,7 @@ class LoginActivity : AppCompatActivity() {
 
                         } else {
                             Toast.makeText(
-                                this,
-                                task.exception?.message,
-                                Toast.LENGTH_SHORT
+                                this,task.exception?.message, Toast.LENGTH_SHORT
                             ).show()
                         }
                     }
