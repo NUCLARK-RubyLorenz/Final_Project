@@ -1,4 +1,4 @@
-package com.example.userlogin
+package com.example.userlogin.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -8,8 +8,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 
 class ProfessorActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityProfessorBinding
-    private lateinit var auth: FirebaseAuth
+    private val auth = FirebaseAuth.getInstance()
     private lateinit var userRef: DatabaseReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,11 +18,12 @@ class ProfessorActivity : AppCompatActivity() {
         binding = ActivityProfessorBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        auth = FirebaseAuth.getInstance()
-        val uid = auth.currentUser?.uid ?: ""
+        val uid = auth.currentUser!!.uid
         userRef = FirebaseDatabase.getInstance().getReference("Users").child(uid)
 
-        // Load current data
+        // Auto offline on disconnect
+        userRef.child("status").onDisconnect().setValue(false)
+
         userRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val name = snapshot.child("username").getValue(String::class.java)
@@ -29,15 +31,12 @@ class ProfessorActivity : AppCompatActivity() {
 
                 binding.TVCurrentUser.text = "Welcome, Prof. $name"
                 binding.SWSwitchProfessorActivity.isChecked = status
-                binding.VStatusCircleProfessorActivity.setBackgroundResource(
-                    if (status) R.drawable.status_on else R.drawable.status_off
-                )
             }
             override fun onCancelled(error: DatabaseError) {}
         })
 
-        binding.SWSwitchProfessorActivity.setOnCheckedChangeListener { _, isChecked ->
-            userRef.child("status").setValue(isChecked)
+        binding.SWSwitchProfessorActivity.setOnCheckedChangeListener { _, checked ->
+            userRef.child("status").setValue(checked)
         }
 
         binding.BTNSignoutProfessorActivity.setOnClickListener {

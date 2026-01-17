@@ -1,4 +1,4 @@
-package com.example.userlogin
+package com.example.userlogin.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -8,21 +8,16 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
 class MainActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityMainBinding
-    private lateinit var auth: FirebaseAuth
+    private val auth = FirebaseAuth.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        auth = FirebaseAuth.getInstance()
-
-        // 1. Auto-Login Logic
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            checkUserRoleAndRedirect(currentUser.uid)
-        }
+        auth.currentUser?.uid?.let { checkRoleAndRedirect(it) }
 
         binding.BTNLoginMainActivity.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
@@ -33,17 +28,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkUserRoleAndRedirect(uid: String) {
+    private fun checkRoleAndRedirect(uid: String) {
         FirebaseDatabase.getInstance().getReference("Users").child(uid).get()
-            .addOnSuccessListener { snapshot ->
-                val role = snapshot.child("role").getValue(String::class.java)
-                val intent = if (role == "Professor") {
-                    Intent(this, ProfessorActivity::class.java)
-                } else {
-                    Intent(this, StudentActivity::class.java)
-                }
-                startActivity(intent)
+            .addOnSuccessListener { snap ->
+                val role = snap.child("role").getValue(String::class.java)
+                val target = if (role == "Professor")
+                    ProfessorActivity::class.java
+                else
+                    StudentActivity::class.java
+
+                startActivity(Intent(this, target))
                 finish()
+            }
+            .addOnFailureListener {
+                auth.signOut()
             }
     }
 }
