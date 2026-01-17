@@ -2,130 +2,162 @@ package com.example.userlogin
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.Button
-import android.widget.TextView
-import androidx.activity.enableEdgeToEdge
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.userlogin.databinding.ActivityStudentBinding
+import com.example.userlogin.databinding.ItemProfessorBinding
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.*
 
 class StudentActivity : AppCompatActivity() {
-
+    private lateinit var binding: ActivityStudentBinding
     private lateinit var auth: FirebaseAuth
-    private lateinit var database: FirebaseDatabase
-    private lateinit var statusCircle: View
-    private lateinit var tvProfessorStatus: TextView
-    private var statusListener: ValueEventListener? = null
+
+    // Master list holds all data from Firebase
+    private val fullProfessorList = mutableListOf<Professor>()
+    // Display list holds what is currently shown (filtered)
+    private val displayList = mutableListOf<Professor>()
+    private val favoriteIds = mutableSetOf<String>()
+
+    private lateinit var adapter: ProfessorAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_student)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+        binding = ActivityStudentBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         auth = FirebaseAuth.getInstance()
-        database = FirebaseDatabase.getInstance()
 
-        val currentUser = auth.currentUser
-
-        if(currentUser == null) {
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
-            return
+        // Initialize Adapter with displayList
+        adapter = ProfessorAdapter(displayList) { professor ->
+            toggleFavorite(professor)
         }
 
-        val userId = currentUser.uid
+        binding.RVProfessorList.layoutManager = LinearLayoutManager(this)
+        binding.RVProfessorList.adapter = adapter
 
-        val signOut = findViewById<Button>(R.id.BTN_SignoutStudentActivity)
-        statusCircle = findViewById(R.id.V_StatusCircleStudentActivity)
-        val tvCurrentUser = findViewById<TextView>(R.id.TV_CurrentUserStudent)
-        tvProfessorStatus = findViewById(R.id.TV_ProfessorStatus)
+        // Listen for search input changes
+        binding.ETSearchProfessor.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                filterList(s.toString())
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
-        // Fetch username from Firebase Database
-        database.getReference("Users").child(userId)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val username = snapshot.child("username").getValue(String::class.java)
-                    if (username != null) {
-                        tvCurrentUser.text = "Welcome $username"
-                    } else {
-                        tvCurrentUser.text = "Welcome User"
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    tvCurrentUser.text = "Welcome User"
-                }
-            })
-
-        // Load and monitor professor status from Firebase in real-time
-        monitorProfessorStatus()
-
-        signOut.setOnClickListener {
+        // Sign out logic
+        binding.BTNSignoutStudentActivity.setOnClickListener {
             auth.signOut()
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
         }
+
+        loadFavoritesAndProfessors()
     }
 
-    private fun monitorProfessorStatus() {
-        // Monitor all users in real-time for professor status changes
-        statusListener = database.getReference("Users")
+    private fun loadFavoritesAndProfessors() {
+        val myUid = auth.currentUser?.uid ?: return
+        val userRef = FirebaseDatabase.getInstance().getReference("Users")
+
+        // 1. Listen for Favorites
+        userRef.child(myUid).child("favorites").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(favSnapshot: DataSnapshot) {
+                favoriteIds.clear()
+                favSnapshot.children.forEach { it.key?.let { id -> favoriteIds.add(id) } }
+
+                // Fetch professors only once or update current list
+                fetchProfessorsFromServer()
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    private fun fetchProfessorsFromServer() {
+        FirebaseDatabase.getInstance().getReference("Users")
+            .orderByChild("role").equalTo("Professor")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    var anyProfessorOnline = false
-                    var professorName = "Professor"
+                    fullProfessorList.clear()
+                    for (postSnapshot in snapshot.children) {
+                        val profUid = postSnapshot.key ?: ""
+                        val name = postSnapshot.child("username").getValue(String::class.java) ?: "Unknown"
+                        val status = postSnapshot.child("status").getValue(Boolean::class.java) ?: false
 
-                    // Loop through all users to find available professors
-                    for (userSnapshot in snapshot.children) {
-                        val role = userSnapshot.child("role").getValue(String::class.java)
-                        val status = userSnapshot.child("status").getValue(Boolean::class.java) ?: false
-
-                        // Check if this user is a professor with status = true
-                        if (role == "Professor" && status) {
-                            anyProfessorOnline = true
-                            professorName = userSnapshot.child("username").getValue(String::class.java) ?: "Professor"
-                            break // Found an available professor
-                        }
+                        val prof = Professor(profUid, name, status, favoriteIds.contains(profUid))
+                        fullProfessorList.add(prof)
                     }
-
-                    // Update UI based on professor availability
-                    updateStatusUI(anyProfessorOnline, professorName)
+                    // Apply current search filter to the new data
+                    filterList(binding.ETSearchProfessor.text.toString())
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                    // Handle error - show offline status
-                    statusCircle.setBackgroundResource(R.drawable.status_off)
-                    tvProfessorStatus.text = "Unable to check status"
-                }
+                override fun onCancelled(error: DatabaseError) {}
             })
     }
 
-    private fun updateStatusUI(isAvailable: Boolean, professorName: String) {
-        if (isAvailable) {
-            statusCircle.setBackgroundResource(R.drawable.status_on)
-            tvProfessorStatus.text = "$professorName is available"
+    private fun filterList(query: String) {
+        displayList.clear()
+        if (query.isEmpty()) {
+            displayList.addAll(fullProfessorList)
         } else {
-            statusCircle.setBackgroundResource(R.drawable.status_off)
-            tvProfessorStatus.text = "No professors available"
+            val filtered = fullProfessorList.filter {
+                it.username.contains(query, ignoreCase = true)
+            }
+            displayList.addAll(filtered)
+        }
+
+        // Sort: Favorites at the top, then by name
+        displayList.sortWith(compareByDescending<Professor> { it.isFavorite }.thenBy { it.username })
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun toggleFavorite(professor: Professor) {
+        val myUid = auth.currentUser?.uid ?: return
+        val favRef = FirebaseDatabase.getInstance().getReference("Users")
+            .child(myUid).child("favorites").child(professor.uid)
+
+        if (professor.isFavorite) {
+            favRef.removeValue()
+        } else {
+            favRef.setValue(true)
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // Remove listener to prevent memory leaks
-        statusListener?.let {
-            database.getReference("Users").removeEventListener(it)
+    // --- ADAPTER ---
+    class ProfessorAdapter(
+        private val list: List<Professor>,
+        private val onFavClick: (Professor) -> Unit
+    ) : RecyclerView.Adapter<ProfessorAdapter.ViewHolder>() {
+
+        inner class ViewHolder(val binding: ItemProfessorBinding) : RecyclerView.ViewHolder(binding.root)
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val b = ItemProfessorBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return ViewHolder(b)
         }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val prof = list[position]
+            holder.binding.apply {
+                TVItemProfessorName.text = prof.username
+                TVItemStatusText.text = if (prof.status) "Available" else "Busy"
+
+                IVFavorite.setImageResource(
+                    if (prof.isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart_border
+                )
+
+                VStatusIndicator.setBackgroundResource(
+                    if (prof.status) R.drawable.status_on else R.drawable.status_off
+                )
+
+                IVFavorite.setOnClickListener { onFavClick(prof) }
+            }
+        }
+
+        override fun getItemCount() = list.size
     }
 }

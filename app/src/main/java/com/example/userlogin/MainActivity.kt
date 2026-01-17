@@ -2,48 +2,48 @@ package com.example.userlogin
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.userlogin.databinding.ActivityMainBinding
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
-import kotlin.math.sign
+import com.google.firebase.database.FirebaseDatabase
 
 class MainActivity : AppCompatActivity() {
-
+    private lateinit var binding: ActivityMainBinding
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         auth = FirebaseAuth.getInstance()
 
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        // 1. Auto-Login Logic
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            checkUserRoleAndRedirect(currentUser.uid)
         }
 
-        val btnSignupMainActivity = findViewById<Button>(R.id.BTN_SignupMainActivity)
-        val btnLoginMainActivity = findViewById<Button>(R.id.BTN_LoginMainActivity)
-
-        btnSignupMainActivity.setOnClickListener {
-            startActivity(Intent(this, SignupActivity::class.java))
-            finish()
-        }
-
-        btnLoginMainActivity.setOnClickListener {
+        binding.BTNLoginMainActivity.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
-            finish()
         }
 
+        binding.BTNSignupMainActivity.setOnClickListener {
+            startActivity(Intent(this, SignupActivity::class.java))
+        }
+    }
 
-
+    private fun checkUserRoleAndRedirect(uid: String) {
+        FirebaseDatabase.getInstance().getReference("Users").child(uid).get()
+            .addOnSuccessListener { snapshot ->
+                val role = snapshot.child("role").getValue(String::class.java)
+                val intent = if (role == "Professor") {
+                    Intent(this, ProfessorActivity::class.java)
+                } else {
+                    Intent(this, StudentActivity::class.java)
+                }
+                startActivity(intent)
+                finish()
+            }
     }
 }

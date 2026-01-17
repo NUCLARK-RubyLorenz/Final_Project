@@ -12,61 +12,42 @@
         android:id="@+id/TV_CurrentUserStudent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Welcome"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        android:text="Welcome Student"
+        android:textSize="20sp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.1" />
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <TextView
-        android:id="@+id/TV_StatusLabelStudent"
+    <EditText
+        android:id="@+id/ET_SearchProfessor"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Search Professor Name..."
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/TV_CurrentUserStudent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/BTN_SearchProfessor" />
+
+    <Button
+        android:id="@+id/BTN_SearchProfessor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Professor Availability"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.25" />
+        android:text="Search"
+        app:layout_constraintTop_toTopOf="@id/ET_SearchProfessor"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <View
-        android:id="@+id/V_StatusCircleStudentActivity"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:background="@drawable/status_off"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.35" />
-
-    <TextView
-        android:id="@+id/TV_ProfessorStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Checking status..."
-        android:textSize="16sp"
-        android:gravity="center"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/V_StatusCircleStudentActivity"
-        android:layout_marginTop="12dp" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/RV_ProfessorList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/ET_SearchProfessor"
+        app:layout_constraintBottom_toTopOf="@id/BTN_SignoutStudentActivity" />
 
     <Button
         android:id="@+id/BTN_SignoutStudentActivity"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Sign Out"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.65" />
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
