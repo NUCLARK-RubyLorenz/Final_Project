@@ -22,7 +22,7 @@
         app:layout_constraintVertical_bias="0.48" />
 
     <EditText
-        android:id="@+id/ET_UsernameSignupActivity"
+        android:id="@+id/ET_EmailSignupActivity"
         android:layout_width="241dp"
         android:layout_height="52dp"
         android:ems="10"
@@ -33,6 +33,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.365" />
+
+    <EditText
+        android:id="@+id/ET_UsernameSignupActivity"
+        android:layout_width="241dp"
+        android:layout_height="52dp"
+        android:ems="10"
+        android:hint="User Name"
+        android:inputType="text"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.268" />
 
     <TextView
         android:id="@+id/textView"
@@ -70,5 +83,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.664" />
+
+    <TextView
+        android:id="@+id/TV_LoginPageSignupActivity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Already have an account? Log In"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.79"
+        android:clickable="true"
+        />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
